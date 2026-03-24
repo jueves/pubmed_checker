@@ -4,7 +4,7 @@ Filtra artículos de un CSV según año de publicación en PubMed y centro del a
 
 Uso: python filter_pubmed.py <archivo.csv> [config.json]
 
-El archivo de configuración (por defecto filter_config.json) debe contener:
+El archivo de configuración (por defecto filter_config_example.json) debe contener:
   {
     "year": "2024",
     "affiliation_keyword": "Hospital"
@@ -28,7 +28,7 @@ import requests
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 DELAY_BETWEEN_REQUESTS = 0.4  # segundos (límite NCBI: ~3 req/s sin API key)
-DEFAULT_CONFIG = "filter_config.json"
+DEFAULT_CONFIG = "filter_config_example.json"
 
 
 def normalize(text: str) -> str:
