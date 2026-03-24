@@ -49,7 +49,9 @@ Estas columnas del CSV se leen pero **no se contrastan con PubMed**:
 | `Impact Factor 2024`                     | No disponible en la API de PubMed                   |
 | `Cuartil`                                | No disponible en la API de PubMed                   |
 | `Tipo Publicación`                       | No se verifica actualmente                          |
-| `Open Access`                            | No disponible en la API de PubMed                   |
+| `Open Access`                            | No verificable de forma fiable mediante la API de PubMed (ver nota) |
+
+> **Nota sobre Open Access:** La API de PubMed permite detectar si un artículo está disponible en PubMed Central (PMC) mediante la presencia de un PMC ID, lo que correspondería a los artículos marcados como "Free PMC Article" en la web. Sin embargo, muchos artículos de libre acceso están alojados únicamente en la web del publicador y no tienen PMC ID, por lo que esta señal no cubre todos los casos posibles. Al no poder verificar el acceso libre de forma exhaustiva, el campo `Open Access` no se contrasta.
 
 ---
 
