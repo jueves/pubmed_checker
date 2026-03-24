@@ -192,7 +192,7 @@ def main():
     print(f"\nArtículos que cumplen los filtros: {len(results)}\n")
     for n, r in enumerate(results, start=1):
         print(f"{n}. {r['titulo']}")
-        print(f"   Autores     : {r['autores']}")
+        print(f"   Autores centro : {r['autores']}")
         print(f"   Centro      : {r['centro']}")
         print(f"   Año         : {r['año']}")
         print(f"   Open Access : {r['oa']}")
