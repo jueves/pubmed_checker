@@ -105,13 +105,13 @@ def fetch_pubmed(pmid: str) -> dict | None:
     }
 
 
-def matching_authors(authors: list, keyword_normalized: str) -> list[str]:
-    """Devuelve los nombres de los autores cuya afiliación contiene la palabra clave."""
+def matching_authors(authors: list, keyword_normalized: str) -> list[dict]:
+    """Devuelve autor y afiliación literal para los autores que coinciden con la palabra clave."""
     matched = []
     for author in authors:
         for aff in author["affiliations"]:
             if keyword_normalized in normalize(aff):
-                matched.append(author["name"])
+                matched.append({"name": author["name"], "affiliation": aff})
                 break
     return matched
 
@@ -173,15 +173,20 @@ def main(csv_path: str, config_path: str):
         results.append({
             "titulo": pubmed["title"],
             "doi": pubmed["doi"] or "—",
-            "autores": ", ".join(matched),
+            "year": pubmed["year"],
+            "matched": matched,
         })
 
     # Salida
     print(f"\nArticulos que cumplen los filtros: {len(results)}\n")
     for n, r in enumerate(results, start=1):
         print(f"{n}. {r['titulo']}")
-        print(f"   DOI   : {r['doi']}")
-        print(f"   Autor : {r['autores']}")
+        print(f"   DOI    : {r['doi']}")
+        print(f"   Filtros cumplidos:")
+        print(f"     - Año en PubMed : {r['year']} (= {target_year})")
+        for m in r["matched"]:
+            print(f"     - Centro        : {m['affiliation']}")
+            print(f"       Autor         : {m['name']}")
         print()
 
 
