@@ -112,6 +112,14 @@ def main(csv_path: str):
     headers  = [h.strip() for h in all_rows[1]]
     data_rows = all_rows[3:]
 
+    required_columns = [csv_col for csv_col, _, _ in FIELDS] + ["PMID (PubMed Identifier)"]
+    missing = [col for col in required_columns if col not in headers]
+    if missing:
+        sys.exit(
+            "Error: el CSV no contiene las siguientes columnas requeridas:\n"
+            + "\n".join(f"  - {col}" for col in missing)
+        )
+
     totals = {"ok": 0, "diferencias": 0, "sin_pmid": 0, "no_encontrado": 0}
 
     print(f"Archivo : {path.name}  |  Filas de datos: {len(data_rows)}")
