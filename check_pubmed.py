@@ -80,13 +80,6 @@ def fetch_pubmed(pmid: str) -> dict | None:
                 end = first_page[: len(first_page) - len(end)] + end
             last_page = end
 
-    # Open Access: presencia de PMC ID indica artículo libre en PubMed Central
-    pmc_id = ""
-    for article_id in article.findall(".//ArticleIdList/ArticleId"):
-        if article_id.get("IdType") == "pmc" and article_id.text:
-            pmc_id = article_id.text.strip()
-            break
-
     return {
         "title":        text(".//ArticleTitle"),
         "first_author": authors[0] if authors else "",
@@ -96,8 +89,6 @@ def fetch_pubmed(pmid: str) -> dict | None:
         "volume":       text(".//Journal/JournalIssue/Volume"),
         "first_page":   first_page,
         "last_page":    last_page,
-        "open_access":  bool(pmc_id),
-        "pmc_id":       pmc_id,
     }
 
 
@@ -157,17 +148,6 @@ def main(csv_path: str):
                 print(f"        CSV    : {csv_val or '—'}")
                 print(f"        PubMed : {pm_val or '—'}")
                 diffs.append(label)
-
-        # Verificar Open Access
-        csv_oa = normalize(row.get("Open Access", "").strip())
-        csv_oa_bool = csv_oa in ("si", "sí", "yes", "true", "1")
-        pm_oa = pubmed["open_access"]
-        if csv_oa and (csv_oa_bool != pm_oa):
-            pm_label = f"Sí ({pubmed['pmc_id']})" if pm_oa else "No"
-            print(f"  [!] Open Access")
-            print(f"        CSV    : {row.get('Open Access', '').strip()}")
-            print(f"        PubMed : {pm_label}")
-            diffs.append("Open Access")
 
         if diffs:
             totals["diferencias"] += 1
