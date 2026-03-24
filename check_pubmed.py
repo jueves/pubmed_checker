@@ -143,18 +143,16 @@ def main(csv_path: str):
         for csv_col, pm_key, label in FIELDS:
             csv_val = row.get(csv_col, "").strip()
             pm_val  = pubmed.get(pm_key, "").strip()
-            match   = normalize(csv_val) == normalize(pm_val)
-            mark    = "=" if match else "!"
-            print(f"  [{mark}] {label}")
-            print(f"        CSV    : {csv_val or '—'}")
-            print(f"        PubMed : {pm_val or '—'}")
-            if not match:
+            if normalize(csv_val) != normalize(pm_val):
+                print(f"  [!] {label}")
+                print(f"        CSV    : {csv_val or '—'}")
+                print(f"        PubMed : {pm_val or '—'}")
                 diffs.append(label)
 
         if diffs:
-            print(f"  >> Campos con diferencias: {', '.join(diffs)}")
             totals["diferencias"] += 1
         else:
+            print("  OK")
             totals["ok"] += 1
 
     print("\n" + "=" * 70)
