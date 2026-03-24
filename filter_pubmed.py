@@ -28,7 +28,7 @@ import requests
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 DELAY_BETWEEN_REQUESTS = 0.4  # segundos (límite NCBI: ~3 req/s sin API key)
-DEFAULT_CONFIG = "filter_config_example.json"
+DEFAULT_CONFIG = "filter_config.json"
 
 
 def normalize(text: str) -> str:
