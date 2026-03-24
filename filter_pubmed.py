@@ -73,12 +73,15 @@ def fetch_pubmed(pmid: str) -> dict | None:
         or text(".//Journal/JournalIssue/PubDate/MedlineDate")[:4]
     )
 
-    # DOI
+    # DOI y Open Access (PMC ID)
     doi = ""
+    pmc_id = ""
     for article_id in article.findall(".//ArticleIdList/ArticleId"):
-        if article_id.get("IdType") == "doi":
+        id_type = article_id.get("IdType")
+        if id_type == "doi" and not doi:
             doi = article_id.text.strip() if article_id.text else ""
-            break
+        elif id_type == "pmc" and not pmc_id:
+            pmc_id = article_id.text.strip() if article_id.text else ""
 
     # Título
     title = text(".//ArticleTitle")
@@ -102,6 +105,7 @@ def fetch_pubmed(pmid: str) -> dict | None:
         "doi": doi,
         "year": year,
         "authors": authors,
+        "open_access": bool(pmc_id),
     }
 
 
@@ -173,6 +177,7 @@ def main(csv_path: str, config_path: str):
         results.append({
             "titulo": pubmed["title"],
             "doi": pubmed["doi"] or "—",
+            "open_access": pubmed["open_access"],
             "matched": matched,
         })
 
@@ -180,10 +185,11 @@ def main(csv_path: str, config_path: str):
     print(f"\nArticulos que cumplen los filtros: {len(results)}\n")
     for n, r in enumerate(results, start=1):
         print(f"{n}. {r['titulo']}")
-        print(f"   DOI    : {r['doi']}")
+        print(f"   DOI        : {r['doi']}")
+        print(f"   Open Access: {'Sí' if r['open_access'] else 'No'}")
         for m in r["matched"]:
-            print(f"   Autor  : {m['name']}")
-            print(f"   Centro : {m['affiliation']}")
+            print(f"   Autor      : {m['name']}")
+            print(f"   Centro     : {m['affiliation']}")
         print()
 
 
