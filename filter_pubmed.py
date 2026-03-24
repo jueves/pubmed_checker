@@ -173,7 +173,6 @@ def main(csv_path: str, config_path: str):
         results.append({
             "titulo": pubmed["title"],
             "doi": pubmed["doi"] or "—",
-            "year": pubmed["year"],
             "matched": matched,
         })
 
@@ -182,11 +181,9 @@ def main(csv_path: str, config_path: str):
     for n, r in enumerate(results, start=1):
         print(f"{n}. {r['titulo']}")
         print(f"   DOI    : {r['doi']}")
-        print(f"   Filtros cumplidos:")
-        print(f"     - Año en PubMed : {r['year']} (= {target_year})")
         for m in r["matched"]:
-            print(f"     - Centro        : {m['affiliation']}")
-            print(f"       Autor         : {m['name']}")
+            print(f"   Autor  : {m['name']}")
+            print(f"   Centro : {m['affiliation']}")
         print()
 
 
