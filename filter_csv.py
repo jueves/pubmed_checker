@@ -64,12 +64,13 @@ def parse_args() -> tuple[str, str, str]:
     parser.add_argument("config", nargs="?", help="Archivo de configuración JSON (opcional)")
     parser.add_argument("--year", help="Año de publicación")
     parser.add_argument("--keyword", help="Palabra clave del centro/servicio")
+    parser.add_argument("--debug", action="store_true", help="Muestra columnas detectadas y valores únicos")
 
     args = parser.parse_args()
 
     # Si se dan --year y --keyword directamente, úsalos
     if args.year and args.keyword:
-        return args.csv, args.year.strip(), args.keyword.strip()
+        return args.csv, args.year.strip(), args.keyword.strip(), args.debug
 
     # Si no, busca config JSON
     config_path = args.config or DEFAULT_CONFIG
@@ -83,7 +84,7 @@ def parse_args() -> tuple[str, str, str]:
     for key in ("year", "affiliation_keyword"):
         if key not in config:
             sys.exit(f"Error: falta la clave '{key}' en la configuración.")
-    return args.csv, config["year"].strip(), config["affiliation_keyword"].strip()
+    return args.csv, config["year"].strip(), config["affiliation_keyword"].strip(), args.debug
 
 
 def format_authors(row: dict) -> str:
@@ -99,18 +100,28 @@ def format_authors(row: dict) -> str:
 
 
 def main():
-    csv_path_str, target_year, keyword = parse_args()
+    csv_path_str, target_year, keyword, debug = parse_args()
 
     path = Path(csv_path_str)
     if not path.exists():
         sys.exit(f"Error: no se encuentra '{csv_path_str}'")
 
-    _, rows = load_csv(path)
+    headers, rows = load_csv(path)
     keyword_norm = normalize(keyword)
 
     print(f"Archivo : {path.name}  |  Filas de datos: {len(rows)}")
     print(f"Filtros : año={target_year}  |  centro contiene='{keyword}'")
     print("=" * 70)
+
+    if debug:
+        print("\n[DEBUG] Columnas detectadas:")
+        for i, h in enumerate(headers):
+            print(f"  {i:2d}: {repr(h)}")
+        años = sorted({r.get("Año", "").strip() for r in rows} - {""})
+        centros = sorted({r.get("Servicio al que pertenece en el HUGCDN", "").strip() for r in rows} - {""})
+        print(f"\n[DEBUG] Valores únicos en 'Año': {años}")
+        print(f"[DEBUG] Valores únicos en 'Servicio al que pertenece en el HUGCDN': {centros}")
+        print()
 
     results = []
     for row in rows:
