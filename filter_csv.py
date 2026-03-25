@@ -10,7 +10,7 @@ Flujo:
      a un centro cuyo nombre contiene la palabra clave.
 
 Salida: título, autores del centro, nombre del centro, año,
-        open access, factor de impacto y cuartil (todos del CSV).
+        open access, factor de impacto, cuartil y URL de PubMed.
 
 Uso:
   python filter_csv.py <archivo.csv> --year AÑO --keyword PALABRA
@@ -179,6 +179,7 @@ def main():
             autores_str = _format_authors(row)
             centro_str = row.get("Servicio al que pertenece en el HUGCDN", "—").strip() or "—"
 
+        url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "—"
         results.append({
             "titulo":  row.get("Título", "—").strip() or "—",
             "autores": autores_str or "—",
@@ -187,6 +188,7 @@ def main():
             "oa":      row.get("Open Access", "—").strip() or "—",
             "if":      row.get("Impact Factor 2024", "—").strip() or "—",
             "cuartil": row.get("Cuartil", "—").strip() or "—",
+            "url":     url,
         })
 
     print(f"\nArtículos que cumplen los filtros: {len(results)}\n")
@@ -198,6 +200,7 @@ def main():
         print(f"   Open Access : {r['oa']}")
         print(f"   IF          : {r['if']}")
         print(f"   Cuartil     : {r['cuartil']}")
+        print(f"   PubMed URL  : {r['url']}")
         print()
 
 
