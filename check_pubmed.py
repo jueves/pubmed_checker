@@ -62,9 +62,9 @@ def fetch_pubmed(pmid: str) -> dict | None:
     authors = []
     for a in article.findall(".//AuthorList/Author"):
         last = a.findtext("LastName", "").strip()
-        initials = a.findtext("Initials", "").strip()
+        forename = a.findtext("ForeName", "").strip() or a.findtext("Initials", "").strip()
         if last:
-            authors.append(f"{last} {initials}".strip())
+            authors.append(f"{last} {forename}".strip())
         elif collective := a.findtext("CollectiveName", "").strip():
             authors.append(collective)
 
