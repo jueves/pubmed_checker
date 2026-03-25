@@ -39,6 +39,12 @@ def normalize(text: str) -> str:
     return " ".join(nfkd.encode("ascii", "ignore").decode("ascii").split())
 
 
+def remove_accents(text: str) -> str:
+    """Elimina acentos preservando mayúsculas/minúsculas."""
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
 def load_csv(path: Path) -> tuple[list[str], list[dict]]:
     with open(path, newline="", encoding="utf-8-sig") as fh:
         sample = fh.read(4096)
@@ -238,15 +244,16 @@ def _parse_authors(row: dict) -> list[str]:
 
 def _print_by_author(results: list[dict]) -> None:
     """Imprime los artículos agrupados por autor."""
-    # Construir índice: autor -> lista de artículos
+    # Construir índice: autor (sin acentos) -> lista de artículos
     author_index: dict[str, list[dict]] = {}
     for r in results:
         for author in r["autores_list"]:
-            author_index.setdefault(author, []).append(r)
+            key = remove_accents(author)
+            author_index.setdefault(key, []).append(r)
 
     print(f"Autores con publicaciones: {len(author_index)}\n")
     print("=" * 70)
-    for author in sorted(author_index):
+    for author in sorted(author_index, key=lambda a: a.lower()):
         articulos = author_index[author]
         print(f"\nAUTOR: {author}  ({len(articulos)} artículo(s))")
         print("-" * 60)
