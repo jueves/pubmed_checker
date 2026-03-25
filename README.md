@@ -1,14 +1,21 @@
 # pubmed_checker
 
-Script Python que valida los datos bibliográficos de un CSV de publicaciones contra la API de PubMed (NCBI).
+Script Python que valida los datos bibliográficos de un CSV/Excel de publicaciones contra la API de PubMed (NCBI).
 
 ## Uso
 
 ```bash
+# CSV
 python check_pubmed.py <archivo.csv>
+
+# Excel (primera hoja)
+python check_pubmed.py <archivo.xlsx>
+
+# Excel (hoja específica)
+python check_pubmed.py <archivo.xlsx> --sheet "Publicaciones"
 ```
 
-El CSV debe seguir esta estructura:
+El archivo debe seguir esta estructura:
 - **Fila 1:** título o metadato libre (ignorada)
 - **Fila 2:** cabeceras de columna
 - **Fila 3:** descripciones de cada columna (ignorada)
@@ -58,5 +65,6 @@ Estas columnas del CSV se leen pero **no se contrastan con PubMed**:
 ## Requisitos
 
 ```bash
-pip install requests
+pip install requests openpyxl   # para CSV y XLSX
+pip install xlrd                # adicionalmente para XLS (formato antiguo)
 ```
