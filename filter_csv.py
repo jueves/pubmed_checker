@@ -15,6 +15,7 @@ Salida: título, autores del centro, nombre del centro, año,
 Uso:
   python filter_csv.py <archivo.csv> --year AÑO --keyword PALABRA
   python filter_csv.py <archivo.csv> [config.json]
+  python filter_csv.py <archivo.csv> [config.json] --author
 """
 
 import argparse
@@ -69,11 +70,12 @@ def parse_args():
     parser.add_argument("--year", help="Año de publicación")
     parser.add_argument("--keyword", default="", help="Palabra clave del centro/hospital")
     parser.add_argument("--debug", action="store_true", help="Muestra columnas y valores únicos detectados")
+    parser.add_argument("--author", action="store_true", help="Agrupa los resultados por autor")
 
     args = parser.parse_args()
 
     if args.year:
-        return args.csv, args.year.strip(), args.keyword.strip(), args.debug
+        return args.csv, args.year.strip(), args.keyword.strip(), args.debug, args.author
 
     config_path = args.config or DEFAULT_CONFIG
     cfg_file = Path(config_path)
@@ -83,7 +85,7 @@ def parse_args():
         config = json.load(fh)
     if "year" not in config:
         sys.exit("Error: falta la clave 'year' en la configuración.")
-    return args.csv, config["year"].strip(), config.get("affiliation_keyword", "").strip(), args.debug
+    return args.csv, config["year"].strip(), config.get("affiliation_keyword", "").strip(), args.debug, args.author
 
 
 def fetch_affiliations(pmid: str) -> list[dict] | None:
@@ -127,7 +129,7 @@ def matching_authors(authors: list, keyword_norm: str) -> list[dict]:
 
 
 def main():
-    csv_path_str, target_year, keyword, debug = parse_args()
+    csv_path_str, target_year, keyword, debug, author_mode = parse_args()
 
     path = Path(csv_path_str)
     if not path.exists():
@@ -172,36 +174,43 @@ def main():
             matched = matching_authors(authors, keyword_norm)
             if not matched:
                 continue
-            autores_str = "; ".join(m["name"] for m in matched)
+            autores_list = [m["name"] for m in matched]
+            autores_str = "; ".join(autores_list)
             centro_str = matched[0]["affiliation"]
         else:
             # Sin keyword: mostrar autores del CSV
             autores_str = _format_authors(row)
+            autores_list = _parse_authors(row)
             centro_str = row.get("Servicio al que pertenece en el HUGCDN", "—").strip() or "—"
 
         url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "—"
         results.append({
-            "titulo":  row.get("Título", "—").strip() or "—",
-            "autores": autores_str or "—",
-            "centro":  centro_str or "—",
-            "año":     row.get("Año", "—").strip() or "—",
-            "oa":      row.get("Open Access", "—").strip() or "—",
-            "if":      row.get("Impact Factor 2024", "—").strip() or "—",
-            "cuartil": row.get("Cuartil", "—").strip() or "—",
-            "url":     url,
+            "titulo":       row.get("Título", "—").strip() or "—",
+            "autores":      autores_str or "—",
+            "autores_list": autores_list,
+            "centro":       centro_str or "—",
+            "año":          row.get("Año", "—").strip() or "—",
+            "oa":           row.get("Open Access", "—").strip() or "—",
+            "if":           row.get("Impact Factor 2024", "—").strip() or "—",
+            "cuartil":      row.get("Cuartil", "—").strip() or "—",
+            "url":          url,
         })
 
     print(f"\nArtículos que cumplen los filtros: {len(results)}\n")
-    for n, r in enumerate(results, start=1):
-        print(f"{n}. {r['titulo']}")
-        print(f"   Autores centro : {r['autores']}")
-        print(f"   Centro      : {r['centro']}")
-        print(f"   Año         : {r['año']}")
-        print(f"   Open Access : {r['oa']}")
-        print(f"   IF          : {r['if']}")
-        print(f"   Cuartil     : {r['cuartil']}")
-        print(f"   PubMed URL  : {r['url']}")
-        print()
+
+    if author_mode:
+        _print_by_author(results)
+    else:
+        for n, r in enumerate(results, start=1):
+            print(f"{n}. {r['titulo']}")
+            print(f"   Autores centro : {r['autores']}")
+            print(f"   Centro      : {r['centro']}")
+            print(f"   Año         : {r['año']}")
+            print(f"   Open Access : {r['oa']}")
+            print(f"   IF          : {r['if']}")
+            print(f"   Cuartil     : {r['cuartil']}")
+            print(f"   PubMed URL  : {r['url']}")
+            print()
 
 
 def _format_authors(row: dict) -> str:
@@ -213,6 +222,39 @@ def _format_authors(row: dict) -> str:
     if rest:
         parts.append(rest)
     return "; ".join(parts) if parts else "—"
+
+
+def _parse_authors(row: dict) -> list[str]:
+    """Devuelve lista de nombres de autor a partir de las columnas del CSV."""
+    authors = []
+    first = row.get("Primer Autor", "").strip()
+    rest = row.get("Resto de Autores", "").strip()
+    if first:
+        authors.append(first)
+    if rest:
+        authors.extend([a.strip() for a in rest.split(";") if a.strip()])
+    return authors
+
+
+def _print_by_author(results: list[dict]) -> None:
+    """Imprime los artículos agrupados por autor."""
+    # Construir índice: autor -> lista de artículos
+    author_index: dict[str, list[dict]] = {}
+    for r in results:
+        for author in r["autores_list"]:
+            author_index.setdefault(author, []).append(r)
+
+    print(f"Autores con publicaciones: {len(author_index)}\n")
+    print("=" * 70)
+    for author in sorted(author_index):
+        articulos = author_index[author]
+        print(f"\nAUTOR: {author}  ({len(articulos)} artículo(s))")
+        print("-" * 60)
+        for n, r in enumerate(articulos, start=1):
+            print(f"  {n}. {r['titulo']}")
+            print(f"     IF: {r['if']}  |  Cuartil: {r['cuartil']}  |  Open Access: {r['oa']}")
+            print(f"     URL: {r['url']}")
+        print()
 
 
 if __name__ == "__main__":
