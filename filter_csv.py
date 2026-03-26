@@ -40,8 +40,8 @@ def normalize(text: str) -> str:
 
 
 def remove_accents(text: str) -> str:
-    """Elimina acentos preservando mayúsculas/minúsculas."""
-    nfkd = unicodedata.normalize("NFKD", text)
+    """Elimina acentos y normaliza guiones a espacios para comparación de nombres."""
+    nfkd = unicodedata.normalize("NFKD", text.replace("-", " "))
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
