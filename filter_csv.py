@@ -213,7 +213,7 @@ def main():
             print(f"   Centro      : {r['centro']}")
             print(f"   Año         : {r['año']}")
             print(f"   Open Access : {r['oa']}")
-            print(f"   IF          : {r['if']}")
+            print(f"   FI          : {r['if']}")
             print(f"   Cuartil     : {r['cuartil']}")
             print(f"   PubMed URL  : {r['url']}")
             print()
@@ -259,7 +259,7 @@ def _print_by_author(results: list[dict]) -> None:
         print("-" * 60)
         for n, r in enumerate(articulos, start=1):
             print(f"  {n}. {r['titulo']}")
-            print(f"     IF: {r['if']}  |  Cuartil: {r['cuartil']}  |  Open Access: {r['oa']}")
+            print(f"     FI: {r['if']}  |  Cuartil: {r['cuartil']}  |  Open Access: {r['oa']}")
             print(f"     URL: {r['url']}")
         print()
 
