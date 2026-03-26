@@ -40,8 +40,8 @@ def normalize(text: str) -> str:
 
 
 def remove_accents(text: str) -> str:
-    """Elimina acentos preservando mayúsculas/minúsculas."""
-    nfkd = unicodedata.normalize("NFKD", text)
+    """Elimina acentos y normaliza guiones a espacios para comparación de nombres."""
+    nfkd = unicodedata.normalize("NFKD", text.replace("-", " "))
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
@@ -213,7 +213,7 @@ def main():
             print(f"   Centro      : {r['centro']}")
             print(f"   Año         : {r['año']}")
             print(f"   Open Access : {r['oa']}")
-            print(f"   IF          : {r['if']}")
+            print(f"   FI          : {r['if']}")
             print(f"   Cuartil     : {r['cuartil']}")
             print(f"   PubMed URL  : {r['url']}")
             print()
@@ -259,7 +259,7 @@ def _print_by_author(results: list[dict]) -> None:
         print("-" * 60)
         for n, r in enumerate(articulos, start=1):
             print(f"  {n}. {r['titulo']}")
-            print(f"     IF: {r['if']}  |  Cuartil: {r['cuartil']}  |  Open Access: {r['oa']}")
+            print(f"     FI: {r['if']}  |  Cuartil: {r['cuartil']}  |  Open Access: {r['oa']}")
             print(f"     URL: {r['url']}")
         print()
 
