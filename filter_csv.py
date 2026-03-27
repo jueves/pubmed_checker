@@ -35,6 +35,7 @@ DEFAULT_CONFIG = "filter_config.json"
 
 
 def normalize(text: str) -> str:
+    """Minúsculas, sin acentos, sin espacios extra (para comparaciones insensibles a tildes)."""
     nfkd = unicodedata.normalize("NFKD", text.strip().lower())
     return " ".join(nfkd.encode("ascii", "ignore").decode("ascii").split())
 
@@ -125,12 +126,13 @@ def fetch_affiliations(pmid: str) -> list[dict] | None:
 
 
 def matching_authors(authors: list, keyword_norm: str) -> list[dict]:
+    """Devuelve nombre y afiliación literal para los autores cuya afiliación contiene la palabra clave."""
     matched = []
     for author in authors:
         for aff in author["affiliations"]:
             if keyword_norm in normalize(aff):
                 matched.append({"name": author["name"], "affiliation": aff})
-                break
+                break  # un autor puede tener varias afiliaciones; basta con una coincidencia
     return matched
 
 
@@ -157,7 +159,7 @@ def main():
         print(f"\n[DEBUG] Valores únicos en 'Año': {años}")
         print()
 
-    # Paso 1: filtrar por año desde el CSV (sin API)
+    # Paso 1: filtrar por año desde el CSV (sin llamadas a la API)
     year_filtered = [r for r in rows if r.get("Año", "").strip() == target_year]
     print(f"Filas con año {target_year}: {len(year_filtered)}")
     if keyword:
@@ -167,13 +169,13 @@ def main():
     for row in year_filtered:
         pmid = row.get("PMID (PubMed Identifier)", "").strip()
 
-        # Si hay keyword, verificar afiliación en PubMed
         if keyword:
+            # Paso 2: si hay palabra clave, verificar afiliación en PubMed
             if not pmid:
                 print(f"  [OMITIDO] Sin PMID: {row.get('Título', '')[:60]}", file=sys.stderr)
                 continue
             authors = fetch_affiliations(pmid)
-            time.sleep(DELAY_BETWEEN_REQUESTS)
+            time.sleep(DELAY_BETWEEN_REQUESTS)  # respetar límite de frecuencia de la API
             if authors is None:
                 print(f"  [OMITIDO] PMID {pmid} no encontrado en PubMed", file=sys.stderr)
                 continue
@@ -181,13 +183,13 @@ def main():
             if not matched:
                 continue
             autores_list = [m["name"] for m in matched]
-            autores_str = "; ".join(autores_list)
-            centro_str = matched[0]["affiliation"]
+            autores_str  = "; ".join(autores_list)
+            centro_str   = matched[0]["affiliation"]
         else:
-            # Sin keyword: mostrar autores del CSV
-            autores_str = _format_authors(row)
+            # Sin palabra clave: usar directamente los autores y el servicio del CSV
+            autores_str  = _format_authors(row)
             autores_list = _parse_authors(row)
-            centro_str = row.get("Servicio al que pertenece en el HUGCDN", "—").strip() or "—"
+            centro_str   = row.get("Servicio al que pertenece en el HUGCDN", "—").strip() or "—"
 
         url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "—"
         results.append({
@@ -220,9 +222,10 @@ def main():
 
 
 def _format_authors(row: dict) -> str:
+    """Combina 'Primer Autor' y 'Resto de Autores' del CSV en una cadena separada por punto y coma."""
     parts = []
     first = row.get("Primer Autor", "").strip()
-    rest = row.get("Resto de Autores", "").strip()
+    rest  = row.get("Resto de Autores", "").strip()
     if first:
         parts.append(first)
     if rest:
