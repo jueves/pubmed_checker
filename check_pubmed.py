@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Valida los datos de un CSV de papers contra la API de PubMed.
-Uso: python check_pubmed.py <archivo.csv>
+Validates paper data from a CSV file against the PubMed API.
+Usage: python check_pubmed.py <file.csv>
 
-Estructura del CSV:
-  Fila 1: ignorada
-  Fila 2: headers
-  Fila 3: explicaciones (ignorada)
-  Fila 4+: datos
+CSV structure:
+  Row 1: ignored
+  Row 2: headers
+  Row 3: explanations (ignored)
+  Row 4+: data
 """
 
 import csv
@@ -20,28 +20,28 @@ from pathlib import Path
 import requests
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-DELAY_BETWEEN_REQUESTS = 0.4  # segundos (límite NCBI: ~3 req/s sin API key)
+DELAY_BETWEEN_REQUESTS = 0.4  # seconds (NCBI rate limit: ~3 req/s without API key)
 
-# Campos a comparar: (columna CSV, clave PubMed, etiqueta)
+# Fields to compare: (CSV column, PubMed key, display label)
 FIELDS = [
-    ("Título",         "title",        "Título"),
-    ("Primer Autor",   "first_author", "Primer Autor"),
-    ("Revista",        "journal",      "Revista"),
-    ("Año",            "year",         "Año"),
-    ("Volumen",        "volume",       "Volumen"),
-    ("Primera Página", "first_page",   "Primera Página"),
-    ("Ultima Página",  "last_page",    "Última Página"),
+    ("Título",         "title",        "Title"),
+    ("Primer Autor",   "first_author", "First Author"),
+    ("Revista",        "journal",      "Journal"),
+    ("Año",            "year",         "Year"),
+    ("Volumen",        "volume",       "Volume"),
+    ("Primera Página", "first_page",   "First Page"),
+    ("Ultima Página",  "last_page",    "Last Page"),
 ]
 
 
 def normalize(text: str) -> str:
-    """Minúsculas, sin acentos, sin espacios extra."""
+    """Lowercase, strip accents, collapse whitespace (for accent- and case-insensitive comparisons)."""
     nfkd = unicodedata.normalize("NFKD", text.strip().lower())
     return " ".join(nfkd.encode("ascii", "ignore").decode("ascii").split())
 
 
 def fetch_pubmed(pmid: str) -> dict | None:
-    """Consulta la API de PubMed y devuelve los metadatos del artículo, o None si falla."""
+    """Query the PubMed API and return article metadata, or None on failure."""
     params = {"db": "pubmed", "id": pmid, "retmode": "xml", "rettype": "abstract"}
     try:
         resp = requests.get(EFETCH_URL, params=params, timeout=15)
@@ -56,11 +56,11 @@ def fetch_pubmed(pmid: str) -> dict | None:
         return None
 
     def text(xpath):
-        """Extrae el texto de un nodo XML; devuelve cadena vacía si no existe."""
+        """Extract text from an XML node; return empty string if the node does not exist."""
         el = article.find(xpath)
         return el.text.strip() if el is not None and el.text else ""
 
-    # Autores
+    # Build author list
     authors = []
     for a in article.findall(".//AuthorList/Author"):
         last = a.findtext("LastName", "").strip()
@@ -70,7 +70,7 @@ def fetch_pubmed(pmid: str) -> dict | None:
         elif collective := a.findtext("CollectiveName", "").strip():
             authors.append(collective)
 
-    # Páginas (PubMed abrevia: "123-8" → expandir a "123-128")
+    # PubMed abbreviates page ranges (e.g. "123-8"); expand to full range ("123-128")
     first_page, last_page = "", ""
     medline_pgn = text(".//MedlinePgn")
     if medline_pgn:
@@ -97,9 +97,9 @@ def fetch_pubmed(pmid: str) -> dict | None:
 def main(csv_path: str):
     path = Path(csv_path)
     if not path.exists():
-        sys.exit(f"Error: no se encuentra '{csv_path}'")
+        sys.exit(f"Error: file not found: '{csv_path}'")
 
-    # Detección automática del delimitador (coma, punto y coma o tabulador)
+    # Auto-detect delimiter (comma, semicolon, or tab)
     with open(path, newline="", encoding="utf-8-sig") as fh:
         sample = fh.read(4096)
         fh.seek(0)
@@ -110,50 +110,50 @@ def main(csv_path: str):
         all_rows = list(csv.reader(fh, dialect))
 
     if len(all_rows) < 4:
-        sys.exit("El CSV no tiene suficientes filas (se esperan al menos 4).")
+        sys.exit("Error: CSV has too few rows (at least 4 expected).")
 
-    # Fila 2 (índice 1) contiene las cabeceras; fila 3 (índice 2) son explicaciones → se ignora
+    # Row 2 (index 1) holds headers; row 3 (index 2) holds explanations and is ignored
     headers   = [h.strip() for h in all_rows[1]]
     data_rows = all_rows[3:]
 
-    # Verificar que todas las columnas necesarias están presentes antes de procesar
+    # Verify all required columns are present before processing any row
     required_columns = [csv_col for csv_col, _, _ in FIELDS] + ["PMID (PubMed Identifier)"]
     missing = [col for col in required_columns if col not in headers]
     if missing:
         sys.exit(
-            "Error: el CSV no contiene las siguientes columnas requeridas:\n"
+            "Error: the following required columns are missing from the CSV:\n"
             + "\n".join(f"  - {col}" for col in missing)
         )
 
-    totals = {"ok": 0, "diferencias": 0, "sin_pmid": 0, "no_encontrado": 0}
+    totals = {"ok": 0, "with_diffs": 0, "no_pmid": 0, "not_found": 0}
 
-    print(f"Archivo : {path.name}  |  Filas de datos: {len(data_rows)}")
+    print(f"File : {path.name}  |  Data rows: {len(data_rows)}")
     print("=" * 70)
 
     for i, raw in enumerate(data_rows, start=4):
-        # Saltar filas completamente vacías
+        # Skip completely empty rows
         if not any(c.strip() for c in raw):
             continue
 
         row  = dict(zip(headers, raw))
         pmid = row.get("PMID (PubMed Identifier)", "").strip()
 
-        print(f"\nFila {i} | PMID: {pmid or '—'}")
+        print(f"\nRow {i} | PMID: {pmid or '—'}")
 
         if not pmid:
-            print("  Sin PMID — omitido")
-            totals["sin_pmid"] += 1
+            print("  No PMID — skipped")
+            totals["no_pmid"] += 1
             continue
 
         pubmed = fetch_pubmed(pmid)
-        time.sleep(DELAY_BETWEEN_REQUESTS)  # respetar límite de frecuencia de la API
+        time.sleep(DELAY_BETWEEN_REQUESTS)  # respect API rate limit
 
         if pubmed is None:
-            print(f"  PMID {pmid} no encontrado en PubMed")
-            totals["no_encontrado"] += 1
+            print(f"  PMID {pmid} not found in PubMed")
+            totals["not_found"] += 1
             continue
 
-        # Comparar cada campo entre el CSV y PubMed (normalizado para ignorar acentos y mayúsculas)
+        # Compare each field between the CSV and PubMed (normalized to ignore accents and case)
         diffs = []
         for csv_col, pm_key, label in FIELDS:
             csv_val = row.get(csv_col, "").strip()
@@ -165,20 +165,20 @@ def main(csv_path: str):
                 diffs.append(label)
 
         if diffs:
-            totals["diferencias"] += 1
+            totals["with_diffs"] += 1
         else:
             print("  OK")
             totals["ok"] += 1
 
     print("\n" + "=" * 70)
-    print("RESUMEN")
-    print(f"  Sin diferencias  : {totals['ok']}")
-    print(f"  Con diferencias  : {totals['diferencias']}")
-    print(f"  Sin PMID         : {totals['sin_pmid']}")
-    print(f"  No encontrados   : {totals['no_encontrado']}")
+    print("SUMMARY")
+    print(f"  No differences  : {totals['ok']}")
+    print(f"  With differences: {totals['with_diffs']}")
+    print(f"  No PMID         : {totals['no_pmid']}")
+    print(f"  Not found       : {totals['not_found']}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit("Uso: python check_pubmed.py <archivo.csv>")
+        sys.exit("Usage: python check_pubmed.py <file.csv>")
     main(sys.argv[1])
