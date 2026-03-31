@@ -154,10 +154,20 @@ def main():
     print(f"Filters : year={target_year}{center_filter}")
     print("=" * 70)
 
+    # Detect the Impact Factor column dynamically
+    if_columns = [h for h in headers if h.startswith("Impact Factor")]
+    if len(if_columns) > 1:
+        sys.exit(
+            f"Error: found multiple Impact Factor columns: {if_columns}. "
+            "Please keep only one."
+        )
+    if_col = if_columns[0] if if_columns else None
+
     if debug:
         print("\n[DEBUG] Detected columns:")
         for i, h in enumerate(headers):
             print(f"  {i:2d}: {repr(h)}")
+        print(f"\n[DEBUG] Impact Factor column: {repr(if_col)}")
         years = sorted({r.get("Año", "").strip() for r in rows} - {""})
         print(f"\n[DEBUG] Unique values in 'Año': {years}")
         print()
@@ -202,7 +212,7 @@ def main():
             "center":       center_str or "—",
             "year":         row.get("Año", "—").strip() or "—",
             "oa":           row.get("Open Access", "—").strip() or "—",
-            "if":           row.get("Impact Factor 2024", "—").strip() or "—",
+            "if":           (row.get(if_col, "—").strip() or "—") if if_col else "—",
             "quartile":     row.get("Cuartil", "—").strip() or "—",
             "url":          url,
         })
