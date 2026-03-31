@@ -202,7 +202,7 @@ def main():
             "center":       center_str or "—",
             "year":         row.get("Año", "—").strip() or "—",
             "oa":           row.get("Open Access", "—").strip() or "—",
-            "if":           row.get("Impact Factor 2024", "—").strip() or "—",
+            "if":           row.get("Impact Factor 2024-2025", row.get("Impact Factor 2024", "—")).strip() or "—",
             "quartile":     row.get("Cuartil", "—").strip() or "—",
             "url":          url,
         })
